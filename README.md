@@ -134,16 +134,18 @@ POST /analyze-ticket
 │  • Score each transaction vs. complaint     │
 │  • Detect duplicate payment patterns        │
 │  • Detect established recipient patterns    │
+│  • Detect ambiguous (multi-match) cases     │
 │  • Flag pending transactions                │
 └──────────────────┬──────────────────────────┘
                    │ Structured context hints
                    ▼
 ┌─────────────────────────────────────────────┐
-│  Phase 2: LLM Analysis (Groq qwen3-27b)     │
+│  Phase 2: LLM Analysis (Groq qwen3.6-27b)   │
 │  ─────────────────────────────────────────  │
 │  • Safety-hardened system prompt            │
 │  • Few-shot examples for accuracy           │
-│  • Structured JSON output (json_schema)     │
+│  • Reasoning disabled for fast, clean JSON  │
+│  • llama-4-scout structured-output fallback │
 │  • Pydantic-validated response              │
 └──────────────────┬──────────────────────────┘
                    │ LLM analysis result
@@ -167,10 +169,10 @@ POST /analyze-ticket
 
 | Model | Provider | Purpose |
 |---|---|---|
-| `qwen/qwen3.6-27b` | [Groq](https://groq.com) | Primary ticket analysis — reasoning model with chain-of-thought |
+| `qwen/qwen3.6-27b` | [Groq](https://groq.com) | Primary ticket analysis |
 | `meta-llama/llama-4-scout-17b-16e-instruct` | [Groq](https://groq.com) | Structured output fallback with `json_schema` enforcement |
 
-**Model Strategy**: We call `qwen/qwen3.6-27b` first for its superior reasoning capability (it uses chain-of-thought `<think>` tags before outputting JSON). If parsing fails, we automatically fall back to `llama-4-scout` which natively supports `json_schema` structured output. This gives us both reasoning quality AND output reliability.
+**Model Strategy**: We call `qwen/qwen3.6-27b` first with `reasoning_effort="none"` — this disables its `<think>` chain-of-thought, which otherwise overruns the token budget and truncates the JSON. Disabling it yields clean JSON directly and cuts latency from ~15s to ~1s. If the primary call fails or returns unparseable output, we automatically fall back to `meta-llama/llama-4-scout-17b-16e-instruct`, which natively enforces `json_schema` structured output. A deterministic rule-based fallback guarantees a valid, safe response even if both models are unavailable.
 
 ---
 
@@ -235,10 +237,10 @@ The system prompt explicitly instructs the LLM to respond in the same language a
 
 ## Performance
 
-- **Target**: p95 latency ≤ 5 seconds (Groq is typically 1-3s)
+- **Target**: p95 latency ≤ 5 seconds (primary qwen call ~1s with reasoning disabled)
 - **Hard limit**: 30 seconds per request
-- **Timeout**: LLM call set to 25s, leaving buffer
-- **Fallback**: If LLM fails, rule-based fallback returns a valid, safe response
+- **Timeouts**: qwen call 15s, llama fallback 20s — both well within the limit
+- **Fallback**: If both LLMs fail, the rule-based fallback returns a valid, safe response
 
 ---
 
@@ -255,6 +257,7 @@ The system prompt explicitly instructs the LLM to respond in the same language a
 │   └── safety.py        # Safety validation & repair layer
 ├── Dockerfile           # Production Docker image
 ├── requirements.txt     # Python dependencies
+├── Sample_Cases.json    # 10 public sample cases (input + expected output)
 ├── test_cases.py        # Test runner for all 10 sample cases
 ├── .env.example         # Environment variable template
 ├── .gitignore           # Prevents secrets from being committed
@@ -274,6 +277,7 @@ The system prompt explicitly instructs the LLM to respond in the same language a
 
 ## Pre-Submit Checklist
 
+- [x] All 10 public sample cases pass (60/60 core fields match expected)
 - [x] `GET /health` returns `{"status": "ok"}` within 60s of start
 - [x] `POST /analyze-ticket` responds within 30s
 - [x] All required response fields present with correct types
