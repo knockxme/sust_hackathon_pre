@@ -174,7 +174,7 @@ class LLMTicketAnalysis(BaseModel):
         ...,
         description=(
             "Safe, professional reply to the customer. "
-            "MUST include: 'Please do not share your PIN or OTP with anyone.' "
+            "MUST include: 'Never disclose your PIN or OTP to anyone.' "
             "MUST NOT: ask for PIN/OTP/password/card details, "
             "promise a refund/reversal, or direct to unofficial third parties. "
             "If a refund might be applicable, say: 'any eligible amount will be returned through official channels'. "

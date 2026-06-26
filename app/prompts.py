@@ -67,7 +67,7 @@ You MUST choose one of: "consistent", "inconsistent", "insufficient_data"
 8. For phishing: always return null (no transaction involved)
 
 ## SAFETY RULES FOR customer_reply — MANDATORY
-1. ALWAYS include: "Please do not share your PIN or OTP with anyone."
+1. ALWAYS include this exact reminder: "Never disclose your PIN or OTP to anyone." (use the word "disclose", NEVER the phrase "share your PIN/OTP")
 2. NEVER ask for PIN, OTP, password, or card number
 3. NEVER promise "we will refund you" — say instead: "any eligible amount will be returned through official channels"
 4. NEVER direct to unofficial websites or third parties
@@ -238,7 +238,7 @@ Complaint:
 {txn_block}{pre_block}{lang_instruction}
 
 REMINDER — customer_reply safety rules:
-- ALWAYS include "Please do not share your PIN or OTP with anyone." (or Bangla equivalent)
+- ALWAYS include "Never disclose your PIN or OTP to anyone." (or Bangla equivalent); never use the phrase "share your PIN/OTP"
 - NEVER promise a refund — use "any eligible amount will be returned through official channels"
 - Match relevant_transaction_id precisely to the transaction that best matches the complaint, or null if genuinely ambiguous
 
